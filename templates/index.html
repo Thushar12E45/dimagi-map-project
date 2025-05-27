@@ -2153,16 +2153,116 @@
             return true;
         }
 
+        function enableOrDisableTabs(disable) {
+            const tabs = document.querySelectorAll('.nav-link');
+            tabs.forEach(tab => {
+                if (disable) {
+                    tab.classList.add('disabled');
+                    tab.style.pointerEvents = 'none';
+                    tab.style.opacity = '0.6';
+                } else {
+                    tab.classList.remove('disabled');
+                    tab.style.pointerEvents = '';
+                    tab.style.opacity = '';
+                }
+            });
+
+            // Get the active tab panel
+            const activeTabPanel = document.querySelector('.tab-pane.active');
+            if (activeTabPanel) {
+                // Disable all interactive elements within the active tab panel
+                const interactiveElements = activeTabPanel.querySelectorAll('button, input, select, textarea, .btn, [role="button"]');
+                interactiveElements.forEach(element => {
+                    if (disable) {
+                        element.disabled = true;
+                        element.style.pointerEvents = 'none';
+                        element.style.opacity = '0.6';
+                        element.style.cursor = 'not-allowed';
+                    } else {
+                        element.disabled = false;
+                        element.style.pointerEvents = '';
+                        element.style.opacity = '';
+                        element.style.cursor = '';
+                    }
+                });
+
+                // Disable all form controls
+                const formControls = activeTabPanel.querySelectorAll('.form-control, .form-select, .form-check-input');
+                formControls.forEach(control => {
+                    if (disable) {
+                        control.disabled = true;
+                        control.style.pointerEvents = 'none';
+                        control.style.opacity = '0.6';
+                        control.style.cursor = 'not-allowed';
+                    } else {
+                        control.disabled = false;
+                        control.style.pointerEvents = '';
+                        control.style.opacity = '';
+                        control.style.cursor = '';
+                    }
+                });
+
+                // Disable all Select2 dropdowns
+                const select2Elements = activeTabPanel.querySelectorAll('.select2-container');
+                select2Elements.forEach(select2 => {
+                    if (disable) {
+                        select2.style.pointerEvents = 'none';
+                        select2.style.opacity = '0.6';
+                        select2.style.cursor = 'not-allowed';
+                    } else {
+                        select2.style.pointerEvents = '';
+                        select2.style.opacity = '';
+                        select2.style.cursor = '';
+                    }
+                });
+
+                // Disable all file inputs
+                const fileInputs = activeTabPanel.querySelectorAll('input[type="file"]');
+                fileInputs.forEach(input => {
+                    if (disable) {
+                        input.disabled = true;
+                        input.style.pointerEvents = 'none';
+                        input.style.opacity = '0.6';
+                        input.style.cursor = 'not-allowed';
+                    } else {
+                        input.disabled = false;
+                        input.style.pointerEvents = '';
+                        input.style.opacity = '';
+                        input.style.cursor = '';
+                    }
+                });
+
+                // Disable all labels that act as buttons
+                const labelButtons = activeTabPanel.querySelectorAll('label[for]');
+                labelButtons.forEach(label => {
+                    if (disable) {
+                        label.style.pointerEvents = 'none';
+                        label.style.opacity = '0.6';
+                        label.style.cursor = 'not-allowed';
+                    } else {
+                        label.style.pointerEvents = '';
+                        label.style.opacity = '';
+                        label.style.cursor = '';
+                    }
+                });
+            }
+        }
+
         function fetchData(index, polygon, pinLatLng, fetchClusters) {
             if (index === -1 && !pinLatLng) {
                 showToast("Please select a polygon or drop a pin.", "warning", 3000, "#FFA500");
                 return;
             }
+
+            // Disable tabs before starting the operation
+            enableOrDisableTabs(true);
+
             const polygonData = polygons[index];
             if (polygonData.data && !fetchClusters) {
                 $('#building-count').text(polygonData.buildingCount ?? 0);
                 addBuildings(index, polygonData.data);
                 updateSelectedPolygon();
+                enableOrDisableTabs(false); // Re-enable tabs for cached data
                 return;
             }
             polygonData.densityLayer.clearLayers();
@@ -2171,21 +2271,21 @@
             if (thresholdVal > 100) thresholdVal = 100;
             if (thresholdVal < 0) thresholdVal = 0;
             const clusteringType = $('#clusteringType').val();
-            const dbType = $('#buildingSource').val(); // Updated to use buildingSource
+            const dbType = $('#buildingSource').val();
             let noOfClusters = $('#noOfClusters').val();
             if (noOfClusters <= 0) noOfClusters = 1;
             let noOfBuildings = $('#noOfBuildings').val();
             if (noOfBuildings <= 0) noOfBuildings = 1;
             const gridLength = $('#gridLength').val();
-            const buildingsAreaInMeters = $('#buildingArea').val(); // Updated to use buildingArea
-            const buildingsConfidence = $('#buildingConfidence').val(); // Updated to use buildingConfidence
-            const buildingSourceFilter = $('#buildingSourceFilter').val(); // Added building source filter
+            const buildingsAreaInMeters = $('#buildingArea').val();
+            const buildingsConfidence = $('#buildingConfidence').val();
+            const buildingSourceFilter = $('#buildingSourceFilter').val();
             const fetchWithRecordId = !buildingSourceFilter.includes('MS');
-            // Set buildingsConfidence to 0 if both MS and OSM are selected
             const shouldIgnoreConfidence = buildingSourceFilter.includes('MS') || buildingSourceFilter.includes('OSM');
             const finalBuildingsConfidence = shouldIgnoreConfidence ? 0 : buildingsConfidence;
 
             if (!validateClusteringInputs(clusteringType, pinLatLng, polygon, buildingsAreaInMeters, finalBuildingsConfidence)) {
+                enableOrDisableTabs(false); // Re-enable tabs if validation fails
                 return;
             }
 
@@ -2252,6 +2352,10 @@
                     enableOrDisableHtmlAttribute("clear-clusters", false);
                     enableOrDisableHtmlAttribute("clear-oa", false);
                     enableOrDisableHtmlAttribute("download-btn", false);
+                })
+                .finally(() => {
+                    // Re-enable tabs in all scenarios
+                    enableOrDisableTabs(false);
                 });
         }
 
@@ -2692,6 +2796,9 @@
             const fetchWithRecordId = !buildingSourceFilter.includes('MS');
             const polygon = polygons[selectedPolygonIndex];
 
+            // Disable tabs before starting the operation
+            enableOrDisableTabs(true);
+
             // Show loading state
             showToast('Updating buildings...', 'info', undefined, '#ff9300');
 
@@ -2741,6 +2848,10 @@
                 Swal.close();
                 showToast(`Error: ${error.message}`, 'error', 5000, '#FF0000', '300px');
                 console.error('Error:', error);
+            })
+            .finally(() => {
+                // Re-enable tabs in all scenarios
+                enableOrDisableTabs(false);
             });
         }
 
